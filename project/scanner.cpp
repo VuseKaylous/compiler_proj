@@ -5,7 +5,7 @@ using namespace std;
 
 vector<string> keywords{"int", "float", "void", "boolean", "if", "else", "for", "while", "break", "continue", "return", "main"};
 // string signs[] = {"?", "(", ")", "[", "]","{", "}", ",", ";", "!", "<", ">", "<=", ">=", "==", "!=", "=", "+", "-", "*", "/", "||", "&&"};
-vector<string> operators{"<", ">", "<=", ">=", "==", "!=", "=", "+", "-", "*", "/", "!", "||", "&&"};
+vector<string> operators{"<=", ">=", "<", ">", "==", "!=", "=", "+", "-", "*", "/", "!", "||", "&&"};
 vector<string> separators{"(", ")", "[", "]","{", "}", ",", ";"};
 // regex signs ("([\?:()[]{},;])");
 
@@ -21,7 +21,7 @@ bool checkPrefix(string prefix, string si) {
 
 string get_substr(string si, int pos, int len) {
     string rt = "";
-    for (int i = pos; i < pos + len; i++) if (pos + len < si.size()) rt = rt + si[i];
+    for (int i = pos; i < pos + len; i++) if (i < si.size()) rt = rt + si[i];
     return rt;
 }
 
@@ -33,13 +33,23 @@ string get_substr(string si, int pos) {
 
 void splitSeparators(string si) {
     if (si == "") return;
+    if (si[0] == '"') {
+        words.push_back(si);
+        return;
+    }
     int pos = -1;
     bool check = true;
+    int len = 1;
     for (int i = 0; i < separators.size(); i++) {
+        if (si == separators[i]) {
+            words.push_back(si);
+            return;
+        }
         for (int j = 0; j < si.size(); j++) {
             if (get_substr(si, j, 1) == separators[i]) {
-                pos = i;
+                pos = j;
                 check = false;
+                len = separators[i].size();
                 break;
                 // goto splitPoint;
             }
@@ -47,22 +57,28 @@ void splitSeparators(string si) {
         if (!check) break;
     }
     if (check) for (int i = 0; i < operators.size(); i++) {
+        if (si == operators[i]) {
+            words.push_back(si);
+            return;
+        }
         for (int j = 0; j < si.size(); j++) {
             if (j + operators[i].size() - 1 < si.size() && get_substr(si, j, operators[i].size()) == operators[i]) {
-                pos = i;
+                pos = j;
                 check = false;
+                len = operators[i].size();
                 break;
             }
         }
         if (!check) break;
     }
-    if (pos == -1) {
+    // cout << si << " " << check << "\n";
+    if (check) {
         words.push_back(si);
         return;
     }
     if (pos > 0) splitSeparators(get_substr(si, 0, pos));
-    words.push_back(get_substr(si, pos, 1));
-    if (pos + 1 < si.size()) splitSeparators(si.substr(pos+1));
+    words.push_back(get_substr(si, pos, len));
+    if (pos + 1 < si.size()) splitSeparators(si.substr(pos+len));
 }
 
 int main() {
@@ -71,25 +87,42 @@ int main() {
     freopen("test.vctok", "w", stdout);
     string s;
     bool skip = false;
+    vector<string> temp_words;
+    bool isString = false;
+    string concatStr = "";
     while (cin >> s) {
         if (s.size() >= 2 && s[0] == '/' && s[1] == '*') skip = true;
-        if (!skip) splitSeparators(s);
+        if (!skip) {
+            // splitSeparators(s);
+            temp_words.push_back(s);
+        }
         if (s.size() >= 2 && s[s.size() - 1] == '/' && s[s.size() - 2] == '*') skip = false;
-        // if (s.size() >= 2) cout << s.substr(0, 2) << "\n";
-        // words.push_back(s);
+    }
+    for (int i = 0; i < temp_words.size(); i++) {
+        for (int j = 0; j < temp_words[i].size(); j++) {
+            if (temp_words[i][j] == '"') {
+                if (!isString) {
+                    isString = true;
+                    words.push_back(get_substr(temp_words[i], 0, j));
+                    concatStr = "";
+                } else {
+                    isString = false;
+                    words.push_back(concatStr + '"');
+                    temp_words[i] = get_substr(temp_words[i], j + 1);
+                    j = -1;
+                }
+            }
+            if (isString) concatStr = concatStr + temp_words[i][j];
+        }
+        if (isString) concatStr = concatStr + " ";
+        else words.push_back(temp_words[i]);
+    }
+    temp_words = words;
+    words.clear();
+    for (int i = 0; i < temp_words.size(); i++) {
+        splitSeparators(temp_words[i]);
     }
     // for (int i = 0; i < words.size(); i++) {
-    //     if (words[i][0] == '"') {
-    //         s = "";
-    //         for (int j = i; j < words.size(); j++) {
-    //             s = s + " " + words[j];
-    //             if (words[j].back() == '"') {
-    //                 words.erase(words.begin() + i + 1, words.begin() + j + 1);
-    //                 break;
-    //             }
-    //         }
-    //         words[i] = s;
-    //     }
     //     if (words[i][0] == '\'') {
     //         s = "";
     //         for (int j = i; j < words.size(); j++) {
@@ -100,18 +133,6 @@ int main() {
     //             }
     //         }
     //         words[i] = s;
-    //     }
-    //     if (words[i].size() >= 2 && words[i][0] == '/' && words[i][1] == '*') {
-    //         s = "";
-    //         for (int j = i; j < words.size(); j++) {
-    //             s = s + " " + words[j];
-    //             if (words[j].size() >= 2 &&
-    //                 words[j][words[j].size() - 1] == '/' &&
-    //                 words[j][words[j].size() - 2] == '*') {
-    //                 words.erase(words.begin() + i, words.begin() + j + 1);
-    //                 break;
-    //             }
-    //         }
     //     }
     // }
     words.push_back("$");
