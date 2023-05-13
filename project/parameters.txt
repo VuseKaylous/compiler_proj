@@ -1,0 +1,45 @@
+0 none
+1 program
+2 func-dec1
+3 var-dec1
+4 init-declarator-list
+5 init-declarator
+6 declarator
+7 initialiser
+
+8 type
+
+9 identifier
+
+10 compound-stmt
+11 stmt
+12 if-stmt
+13 for-stmt
+14 while-stmt
+15 break-stmt
+16 continue-stmt
+17 return-stmt
+18 expr-stmt
+
+19 expr
+20 assignment-expr
+21 cond-or-expr
+22 cond-and-expr
+23 equality-expr
+24 rel-expr
+25 additive-expr
+26 multiplicative-expr
+27 unary-expr
+28 primary-expr
+
+29 para-list
+30 proper-para-list
+31 para-dec1
+32 arg-list
+33 proper-arg-list
+34 arg
+
+35 letter
+36 digit
+37 fraction
+38 exponent
