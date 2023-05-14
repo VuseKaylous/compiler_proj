@@ -10,6 +10,8 @@ vector<string> separators{"(", ")", "[", "]","{", "}", ",", ";"};
 // regex signs ("([\?:()[]{},;])");
 
 vector<string> words;
+bool skip = false;
+vector<string> temp_words;
 
 bool checkPrefix(string prefix, string si) {
     if (prefix.size() > si.size()) return false;
@@ -81,22 +83,39 @@ void splitSeparators(string si) {
     if (pos + 1 < si.size()) splitSeparators(si.substr(pos+len));
 }
 
+void handleString(string s) {
+    if (s == "") return;
+    if (s.size() >= 2 && s[0] == '/' && s[1] == '*') skip = true;
+    if (!skip) {
+        // splitSeparators(s);
+        temp_words.push_back(s);
+    }
+    if (s.size() >= 2 && s[s.size() - 1] == '/' && s[s.size() - 2] == '*') skip = false;
+}
+
 int main() {
     // string linkFile; cin >> linkFile ;
     freopen("test.vc", "r", stdin);
     freopen("test.vctok", "w", stdout);
     string s;
-    bool skip = false;
-    vector<string> temp_words;
     bool isString = false;
     string concatStr = "";
-    while (cin >> s) {
-        if (s.size() >= 2 && s[0] == '/' && s[1] == '*') skip = true;
-        if (!skip) {
-            // splitSeparators(s);
-            temp_words.push_back(s);
+    while (getline(cin, s)) {
+        string si = "";
+        for (int i = 0; i < s.size(); i++) {
+            if (s[i] == '/' && i + 1 < s.size() && s[i+1] == '/') {
+                si = "";
+                break;
+            }
+            if (s[i] == ' ' || s[i] == '\t') {
+                handleString(si);
+                si = "";
+            }
+            else {
+                si = si + s[i];
+            }
         }
-        if (s.size() >= 2 && s[s.size() - 1] == '/' && s[s.size() - 2] == '*') skip = false;
+        handleString(si);
     }
     for (int i = 0; i < temp_words.size(); i++) {
         for (int j = 0; j < temp_words[i].size(); j++) {
