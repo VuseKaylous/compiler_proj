@@ -132,19 +132,31 @@ string word_process(string si) {
     return "ID";
 }
 
-void process(int id_node) {
-    if (id_node == 0) return;
-    if (nodes[id_node].is_end_node) {
-        parser = parser + nodes[id_node].id + " ";
-        return;
-    }
-    if (nodes[id_node].child[file[file_pos]]) {
-        int children_id = nodes[id_node].child[file[file_pos]];
-
-        for (int i = 0; i < nodes[id_node].next[children_id].size(); i++) {
-            process(mp[nodes[id_node].next[children_id][i]]);
+int process() {
+    vector<string> st;
+    st.push_back("$"); st.push_back("1");
+    file_pos = 0;
+    while (file_pos < file.size()) {
+        Node node = nodes[mp[st.back()]];
+        cout << file[file_pos] << " " << st.back() << endl;
+        if (node.child[word_process(file[file_pos])] == 0 && st.back() != word_process(file[file_pos])) {
+            cout << "Compilation error" ;
+            return -1;
         }
+        while (st.back() != word_process(file[file_pos])) {
+            // cout << "fuck\n" ;
+            cout << "process: " << file[file_pos] << " " << st.back() << endl;
+            node = nodes[mp[st.back()]];
+            int nextChild = node.child[word_process(file[file_pos])] - 1;
+            st.pop_back();
+            for (int i = node.next[nextChild].size() - 1; i >= 0; i--) {
+                st.push_back(node.next[nextChild][i]);
+            }
+        }
+        st.pop_back();
+        file_pos++;
     }
+    return 0;
 }
 
 string get_first_substring(string str) {
@@ -183,7 +195,7 @@ string trim_string(string str) {
 
 
 int main() {
-    freopen("test.vcps", "w", stdout);
+    // freopen("test.vcps", "w", stdout);
     ifstream rule_reader;
     rule_reader.open("rules.txt");
     string s;
@@ -229,7 +241,6 @@ int main() {
     //------------------------------------------------------------------------------------------------------
 
     for (int i = 1; i < nodes.size(); i++) dfs(i);
-    process(1);
 
     // testing the rule-process-handling
 
@@ -259,5 +270,10 @@ int main() {
     // for (int i = 0; i < file.size(); i++) {
     //     cout << file[i] << " " << word_process(i) << endl;
     // }
+
+    //------------------------------------------------------------------------------------------------------
+
+    if (process() == -1) return 0;
+    cout << "Compilation successful.";
 
 }
