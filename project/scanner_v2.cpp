@@ -3,12 +3,14 @@
 #include<cstring>
 #include<vector>
 #include<map>
+#include<regex>
 using namespace std;
 
 const int N = 50;
 
 vector<string> end_signs{"<=", ">=", "<", ">", "==", "!=", "=", "+", "-", "*", "/", "!", "||", "&&", "(", ")", "[", "]","{", "}", ",", ";"};
 vector<string> keywords{"int", "float", "void", "boolean", "if", "else", "for", "while", "break", "continue", "return"};
+vector<string> types{"STRINGLITERAL", "BOOLLITERAL", "INTLITERAL", "FLOATLITERAL", "ID", ""};
 
 struct Node {
     string id;
@@ -16,14 +18,14 @@ struct Node {
     bool is_end_node = false;
     bool has_checked_end_node = false;
     bool has_dfs = false;
-    map<char, int> child;
-    vector<char> children;
+    map<string, int> child;
+    vector<string> children;
     Node(string id) {
         this->id = id;
         for (int i = 0; i < end_signs.size(); i++) {
             if (id == end_signs[i]) {
                 is_end_node = true;
-                children.push_back(end_signs[i][0]);
+                children.push_back(end_signs[i]);
                 break;
             }
         }
@@ -31,9 +33,16 @@ struct Node {
             for (int i = 0; i < keywords.size(); i++) {
                 if (id == keywords[i]) {
                     is_end_node = true;
-                    children.push_back(keywords[i][0]);
+                    children.push_back(keywords[i]);
                     break;
                 }
+            }
+        }
+        for (int i = 0; i < types.size(); i++) {
+            if (id == types[i]) {
+                is_end_node = true;
+                children.push_back(types[i]);
+                break;
             }
         }
         has_checked_end_node = true;
@@ -51,47 +60,91 @@ struct Node {
 vector<Node> nodes;
 map<string, int> mp;
 vector<string> file;
+string parser;
 
 int file_pos = 0;
 
 bool check_end_node(int id_node) {
+    if (id_node == 0) return true;
+    // cout << "test check_end_node " << id_node << " " << nodes[id_node].has_checked_end_node << " " << nodes[id_node].is_end_node << "\n";
     if (nodes[id_node].has_checked_end_node) return nodes[id_node].is_end_node;
     nodes[id_node].has_checked_end_node = true;
     for (int i = 0; i < end_signs.size(); i++) {
         if (nodes[id_node].id == end_signs[i]) {
             nodes[id_node].is_end_node = true;
-            nodes[id_node].children.push_back(end_signs[i][0]);
+            nodes[id_node].children.push_back(end_signs[i]);
             return true;
         }
     }
     for (int i = 0; i < keywords.size(); i++) {
         if (nodes[id_node].id == keywords[i]) {
             nodes[id_node].is_end_node = true;
-            nodes[id_node].children.push_back(keywords[i][0]);
+            nodes[id_node].children.push_back(keywords[i]);
             return true;
         }
     }
-    return mp[nodes[id_node].id];
+    for (int i = 0; i < types.size(); i++) {
+        if (nodes[id_node].id == types[i]) {
+            nodes[id_node].is_end_node = true;
+            nodes[id_node].children.push_back(types[i]);
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 void dfs(int id_node) {
+    if (id_node == 0) return;
     if (nodes[id_node].has_dfs) return;
     nodes[id_node].has_dfs = true;
+    // cout << "fuck\n";
     if (!check_end_node(id_node)) {
         for (int i = 0; i < nodes[id_node].next.size(); i++) {
             int u = mp[nodes[id_node].next[i][0]];
+            // cout << "test dfs: " << nodes[id_node].id << " " << id_node << " " << nodes[id_node].next[i][0] << " " << u  << "\n";
+            if (u == id_node) continue;
+            if (nodes[id_node].next[i][0] == "0") {
+                nodes[id_node].children.push_back("");
+                nodes[id_node].child[""] = i + 1;
+                continue;
+            }
             dfs(u);
             for (int j = 0; j < nodes[u].children.size(); j++) {
-                nodes[i].children.push_back(nodes[u].children[j]);
-                nodes[i].child[nodes[u].children[j]] = i + 1;
+                // cout << "test dfs part 2: " << nodes[u].id << " " << nodes[u].children[j] << "\n";
+                nodes[id_node].children.push_back(nodes[u].children[j]);
+                nodes[id_node].child[nodes[u].children[j]] = i + 1;
             }
         }
     }
 }
 
+string word_process(string si) {
+    for (int i = 0; i < end_signs.size(); i++) if (end_signs[i] == si) return si;
+    for (int i = 0; i < keywords.size(); i++) if (keywords[i] == si) return si;
+    
+    if (si == "true" || si == "false") return "BOOLLITERAL";
+    if (si[0] == '"' && si.back() == '"') return "STRINGLITERAL";
+    if (regex_match(si, regex("[0-9]+"))) return "INTLITERAL";
+    if (regex_match(si, regex("[0-9]+\\."))) return "FLOATLITERAL";
+    if (regex_match(si, regex("[0-9]+\\.?(E|e)(\\+|-)?[0-9]+"))) return "FLOATLITERAL";
+    if (regex_match(si, regex("[0-9]*\\.[0-9]+((E|e)(\\+|-)?[0-9]+)?"))) return "FLOATLITERAL";
+    return "ID";
+}
+
 void process(int id_node) {
-    Node node = nodes[id_node];
-    if (file_pos[i])
+    if (id_node == 0) return;
+    if (nodes[id_node].is_end_node) {
+        parser = parser + nodes[id_node].id + " ";
+        return;
+    }
+    if (nodes[id_node].child[file[file_pos]]) {
+        int children_id = nodes[id_node].child[file[file_pos]];
+
+        for (int i = 0; i < nodes[id_node].next[children_id].size(); i++) {
+            process(mp[nodes[id_node].next[children_id][i]]);
+        }
+    }
 }
 
 string get_first_substring(string str) {
@@ -130,10 +183,12 @@ string trim_string(string str) {
 
 
 int main() {
+    freopen("test.vcps", "w", stdout);
     ifstream rule_reader;
     rule_reader.open("rules.txt");
     string s;
-    nodes.push_back(Node(""));
+    nodes.push_back(Node("0"));
+    // mp["0"] = 0;
     while (getline(rule_reader, s)) {
         s = trim_string(s);
         string id = get_first_substring(s);
@@ -149,99 +204,18 @@ int main() {
             string si = get_first_substring(s);
             s = trim_first_substring(s);
             road.push_back(si);
+            if (!mp[si]) {
+                Node newNode(si);
+                mp[si] = nodes.size();
+                nodes.push_back(newNode);
+            }
         }
 
         nodes[pos].update(road);
     }
     rule_reader.close();
-    if (!mp["35"]) {
-        Node newNode("35");
-        mp["35"] = nodes.size();
-        nodes.push_back(newNode);
-    }
-    int pos_letter = mp["35"];
-    vector<string> vsi;
-    for (char c = 'a'; c <= 'z'; c++) {
-        string temp_vsi = "";
-        temp_vsi = temp_vsi + c; 
-        vsi.push_back(temp_vsi);
-        nodes[pos_letter].update(vsi);
-        vsi.pop_back();
-    }
-    for (char c = 'A'; c <= 'Z'; c++) {
-        string temp_vsi = "";
-        temp_vsi = temp_vsi + c;
-        vsi.push_back(temp_vsi);
-        nodes[pos_letter].update(vsi);
-        vsi.pop_back();
-    }
-    
-    vsi.push_back("_");
-    nodes[pos_letter].update(vsi);
-    vsi.pop_back();
 
-    if (!mp["36"]) {
-        Node newNode("36");
-        mp["36"] = nodes.size();
-        nodes.push_back(newNode);
-    }
-    pos_letter = mp["36"];
-    for (char c = '0'; c <= '9'; c++) {
-        string temp_vsi = "";
-        temp_vsi = temp_vsi + c;
-        vsi.push_back(temp_vsi);
-        nodes[pos_letter].update(vsi);
-        vsi.pop_back();
-    }
-
-    //------------------------------------------------------------------------------------------------------
-
-
-
-    //------------------------------------------------------------------------------------------------------
-
-    ifstream input;
-    input.open("test.vc");
-    file.clear();
-    bool comment = false;
-    int pos = 0;
-    while (getline(input, s)) {
-        if (comment) pos = s.size();
-        else pos = 0;
-        for (int i = 0; i < s.size(); i++) {
-            if (!comment && s[i] == '/' && i + 1 < s.size() && s[i+1] == '*') {
-                comment = true;
-                string si = get_substring(s, pos, i - pos);
-                si = trim_string(si);
-                // cout << i << " test: " << si << endl;
-                if (si != "") file.push_back(si);
-                pos = i;
-                i++;
-            }
-            else if (comment && s[i] == '*' && i + 1 < s.size() && s[i+1] == '/') {
-                comment = false;
-                pos = i+2;
-                i++;
-            }
-            if (!comment && s[i] == '/' && i + 1 < s.size() && s[i+1] == '/') {
-                string si = get_substring(s, pos, i-pos);
-                si = trim_string(si);
-                if (si != "") file.push_back(si);
-                s = "";
-                break;
-            }
-        }
-        if (s == "") continue;
-        // s = get_substr(s, pos);
-        // cout << s << "\n";
-        if (!comment) {
-            s = trim_string(get_substring(s, pos));
-            if (s != "") file.push_back(s);
-        }
-    }
-    // cout << "\n";
-    input.close();
-    
+    // testing the rules-handling
 
     // for (int i = 0; i < nodes.size(); i++) {
     //     cout << nodes[i].id << "\n";
@@ -252,7 +226,38 @@ int main() {
     //     cout << "\n";
     // }
 
-    for (int i = 0; i < file.size(); i++) {
-        cout << file[i] << "\n";
+    //------------------------------------------------------------------------------------------------------
+
+    for (int i = 1; i < nodes.size(); i++) dfs(i);
+    process(1);
+
+    // testing the rule-process-handling
+
+    // for (int i = 0; i < nodes.size(); i++) {
+    //     cout << nodes[i].id << "\n";
+    //     for (int j = 0; j < nodes[i].children.size(); j++) {
+    //         cout << nodes[i].children[j] << " " << nodes[i].child[nodes[i].children[j]] << "\n";
+    //     }
+    // }
+
+    //------------------------------------------------------------------------------------------------------
+
+    ifstream input;
+    input.open("test.vctok");
+    file.clear();
+    
+    bool comment = false;
+    int pos = 0;
+    while (getline(input, s)) {
+        file.push_back(s);
+        if (s == "$") break;
     }
+    input.close();
+
+    // testing the input-handling
+    
+    // for (int i = 0; i < file.size(); i++) {
+    //     cout << file[i] << " " << word_process(i) << endl;
+    // }
+
 }
