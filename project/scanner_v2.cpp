@@ -8,18 +8,20 @@ using namespace std;
 
 const int N = 50;
 
+// the terminal characters
 vector<string> end_signs{"<=", ">=", "<", ">", "==", "!=", "=", "+", "-", "*", "/", "!", "||", "&&", ",", ")", "]", "(", "[","{", "}", ";"};
 vector<string> keywords{"int", "float", "void", "boolean", "if", "else", "for", "while", "break", "continue", "return"};
 vector<string> types{"STRINGLITERAL", "BOOLLITERAL", "INTLITERAL", "FLOATLITERAL", "ID", ""};
 
+// a Node represents a state
 struct Node {
-    string id;
-    vector<vector<string> > next;
+    string id; // each state differ by this id.
+    vector<vector<string> > next; // this is the list of next states
     bool is_end_node = false;
-    bool has_checked_end_node = false;
+    bool has_checked_end_node = false; // these 2 bools is used to check if this is the terminal state.
     bool has_dfs = false;
-    map<string, int> child;
-    vector<string> children;
+    map<string, int> child; // this is used to find the FIRST states
+    vector<string> children; // list of FIRST states
     Node(string id) {
         this->id = id;
         for (int i = 0; i < end_signs.size(); i++) {
@@ -57,13 +59,14 @@ struct Node {
     }
 };
 
-vector<Node> nodes;
-map<string, int> mp;
-vector<string> file;
-string parser;
+vector<Node> nodes; // list of the states
+map<string, int> mp; // this is to find the state we need
+vector<string> file; // this is to save the input
+string parser; // this is the answer
 
 int file_pos = 0;
 
+// this function check whether the node in question is the end node
 bool check_end_node(int id_node) {
     if (id_node == 0) return true;
     // cout << "test check_end_node " << id_node << " " << nodes[id_node].has_checked_end_node << " " << nodes[id_node].is_end_node << "\n";
@@ -94,6 +97,7 @@ bool check_end_node(int id_node) {
     return false;
 }
 
+// this is used to find the FIRST states of the nodes
 void dfs(int id_node) {
     if (id_node == 0) return;
     if (nodes[id_node].has_dfs) return;
@@ -119,6 +123,7 @@ void dfs(int id_node) {
     }
 }
 
+// this function is used to determine which end-state is the present node
 string word_process(string si) {
     for (int i = 0; i < end_signs.size(); i++) if (end_signs[i] == si) return si;
     for (int i = 0; i < keywords.size(); i++) if (keywords[i] == si) return si;
@@ -132,11 +137,10 @@ string word_process(string si) {
     return "ID";
 }
 
-// int num_tab = 0;
+// this function is used to update the answer string
 string newLine = "\n";
 void update_parser(string si) {
     if (si == "{") {
-        // num_tab++;
         parser = parser + newLine + si;
         newLine = newLine + "\t";
         parser = parser + newLine;
@@ -176,6 +180,7 @@ void update_parser(string si) {
     parser = parser + si + " ";
 }
 
+// this function is used to parse the input
 int process() {
     vector<pair<string, bool> > st;
     st.push_back({"$", true}); st.push_back({"1", true});
@@ -251,6 +256,7 @@ int process() {
     return 0;
 }
 
+// these 5 functions are used for string manipulation
 string get_first_substring(string str) {
     string result = "";
     for (int i = 0; i < str.length(); i++) {
@@ -288,11 +294,12 @@ string trim_string(string str) {
 
 int main() {
     freopen("test.vcps", "w", stdout);
+
+    //------------------------------------------ read the rules -----------------------------------------------
     ifstream rule_reader;
     rule_reader.open("rules.txt");
     string s;
     nodes.push_back(Node("0"));
-    // mp["0"] = 0;
     while (getline(rule_reader, s)) {
         s = trim_string(s);
         string id = get_first_substring(s);
@@ -314,12 +321,11 @@ int main() {
                 nodes.push_back(newNode);
             }
         }
-
         nodes[pos].update(road);
     }
     rule_reader.close();
 
-    // testing the rules-handling
+    // testing the read rules
 
     // for (int i = 0; i < nodes.size(); i++) {
     //     cout << nodes[i].id << "\n";
@@ -330,11 +336,11 @@ int main() {
     //     cout << "\n";
     // }
 
-    //------------------------------------------------------------------------------------------------------
+    //------------------------------------------ handling the rules ---------------------------------------------------
 
     for (int i = 1; i < nodes.size(); i++) dfs(i);
 
-    // testing the rule-process-handling
+    // testing the rule-handling process
 
     // for (int i = 0; i < nodes.size(); i++) {
     //     cout << nodes[i].id << "\n";
@@ -343,7 +349,7 @@ int main() {
     //     }
     // }
 
-    //------------------------------------------------------------------------------------------------------
+    //------------------------------------------- read the input .vc file ---------------------------------------------
 
     ifstream input;
     input.open("test.vctok");
@@ -357,13 +363,13 @@ int main() {
     }
     input.close();
 
-    // testing the input-handling
+    // testing the input
     
     // for (int i = 0; i < file.size(); i++) {
     //     cout << file[i] << " " << word_process(i) << endl;
     // }
 
-    //------------------------------------------------------------------------------------------------------
+    //----------------------------------------------- parse the input -------------------------------------------------
 
     if (process() == -1) return 0;
     // cout << "Compilation successful.\n";
