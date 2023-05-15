@@ -8,7 +8,7 @@ using namespace std;
 
 const int N = 50;
 
-vector<string> end_signs{"<=", ">=", "<", ">", "==", "!=", "=", "+", "-", "*", "/", "!", "||", "&&", "(", ")", "[", "]","{", "}", ",", ";"};
+vector<string> end_signs{"<=", ">=", "<", ">", "==", "!=", "=", "+", "-", "*", "/", "!", "||", "&&", ",", ")", "]", "(", "[","{", "}", ";"};
 vector<string> keywords{"int", "float", "void", "boolean", "if", "else", "for", "while", "break", "continue", "return"};
 vector<string> types{"STRINGLITERAL", "BOOLLITERAL", "INTLITERAL", "FLOATLITERAL", "ID", ""};
 
@@ -132,45 +132,120 @@ string word_process(string si) {
     return "ID";
 }
 
+// int num_tab = 0;
+string newLine = "\n";
+void update_parser(string si) {
+    if (si == "{") {
+        // num_tab++;
+        parser = parser + newLine + si;
+        newLine = newLine + "\t";
+        parser = parser + newLine;
+        return;
+    }
+    if (si == ";") {
+        parser = parser + si + newLine;
+        return;
+    }
+    if (si == "}") {
+        parser.pop_back();
+        parser = parser + si;
+        newLine.pop_back();
+        parser = parser + newLine;
+        return;
+    }
+    for (int i = 0; i < keywords.size(); i++) {
+        if (si == keywords[i]) {
+            if (i + 3 >= keywords.size()) {
+                parser = parser + si;
+                return;
+            }
+            parser = parser + si + " ";
+            return;
+        }
+    }
+    for (int i = 0; i < end_signs.size(); i++) {
+        if (si == end_signs[i]) {
+            if (i + 5 >= end_signs.size()) {
+                parser = parser + si;
+                return;
+            }
+            parser = parser + si + " ";
+            return;
+        }
+    }
+    parser = parser + si + " ";
+}
+
 int process() {
-    vector<string> st;
-    st.push_back("$"); st.push_back("1");
+    vector<pair<string, bool> > st;
+    st.push_back({"$", true}); st.push_back({"1", true});
     file_pos = 0;
     while (file_pos < file.size()) {
         if (file[file_pos] == "$") {
             break;
         }
-        Node node = nodes[mp[st.back()]];
-        // cout << file[file_pos] << " " << st.back() << endl;
+        while (!st.back().second) {
+            // cout << "erase: " << st.back().first << " " << st.back().second << endl;
+            parser = parser + st.back().first;
+            st.pop_back();
+        }
+        Node node = nodes[mp[st.back().first]];
+        // cout << file[file_pos] << " " << st.back().first << " " << st.back().second << endl;
         if (node.child[word_process(file[file_pos])] == 0 &&
-            st.back() != word_process(file[file_pos]) && 
+            st.back().first != word_process(file[file_pos]) && 
             node.child[""] == 0) {
             cout << "Compilation error: can't find next node\n" ;
             return -1;
         }
-        while (st.back() != word_process(file[file_pos])) {
-            // cout << "fuck\n" ;
-            // cout << "process: " << file[file_pos] << " " << st.back() << " " << word_process(file[file_pos]) << endl;
-            node = nodes[mp[st.back()]];
+        while (st.back().first != word_process(file[file_pos])) {
+            while (!st.back().second) {
+                // cout << "erase: " << st.back().first << " " << st.back().second << endl;
+                parser = parser + st.back().first;
+                st.pop_back();
+            }
+            // cout << "process: " << file[file_pos] << " " << st.back().first << " " << st.back().second << " " << word_process(file[file_pos]) << endl;
+            node = nodes[mp[st.back().first]];
             int nextChild = node.child[word_process(file[file_pos])] - 1;
             if (nextChild == -1) {
                 nextChild = node.child[""] - 1;
                 if (nextChild == -1) {
-                    cout << "Compilation error: out of bound\n" << nextChild;
+                    cout << "Compilation error: out of bound\n" << file[file_pos] << " " << st.back().first << " " << st.back().second << " " << mp[st.back().first] << " " << node.id;
                     return -1;
                 }
                 st.pop_back();
+                st.push_back({")", false});
                 for (int i = node.next[nextChild].size() - 1; i > 0; i--) {
-                    st.push_back(node.next[nextChild][i]);
+                    st.push_back({node.next[nextChild][i], true});
+                }
+                if (st.back().second) st.push_back({"(", false});
+                else st.pop_back();
+                while (!st.back().second) {
+                    // cout << "erase: " << st.back().first << " " << st.back().second << endl;
+                    parser = parser + st.back().first;
+                    st.pop_back();
                 }
                 continue;
             }
             st.pop_back();
+            st.push_back({")", false});
             for (int i = node.next[nextChild].size() - 1; i >= 0; i--) {
-                st.push_back(node.next[nextChild][i]);
+                st.push_back({node.next[nextChild][i], true});
+            }
+            if (st.back().second) st.push_back({"(", false});
+            else st.pop_back();
+            while (!st.back().second) {
+                // cout << "erase: " << st.back().first << " " << st.back().second << endl;
+                parser = parser + st.back().first;
+                st.pop_back();
             }
         }
+        update_parser(file[file_pos]);
         st.pop_back();
+        while (!st.back().second) {
+            // cout << "erase: " << st.back().first << " " << st.back().second << endl;
+            parser = parser + st.back().first;
+            st.pop_back();
+        }
         file_pos++;
     }
     return 0;
@@ -291,6 +366,7 @@ int main() {
     //------------------------------------------------------------------------------------------------------
 
     if (process() == -1) return 0;
-    cout << "Compilation successful.";
+    // cout << "Compilation successful.\n";
+    cout << parser ;
 
 }
