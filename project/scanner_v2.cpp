@@ -139,15 +139,29 @@ int process() {
     while (file_pos < file.size()) {
         Node node = nodes[mp[st.back()]];
         cout << file[file_pos] << " " << st.back() << endl;
-        if (node.child[word_process(file[file_pos])] == 0 && st.back() != word_process(file[file_pos])) {
-            cout << "Compilation error" ;
+        if (node.child[word_process(file[file_pos])] == 0 &&
+            st.back() != word_process(file[file_pos]) && 
+            node.child[""] == 0) {
+            cout << "Compilation error: can't find next node\n" ;
             return -1;
         }
         while (st.back() != word_process(file[file_pos])) {
             // cout << "fuck\n" ;
-            cout << "process: " << file[file_pos] << " " << st.back() << endl;
+            cout << "process: " << file[file_pos] << " " << st.back() << " " << word_process(file[file_pos]) << endl;
             node = nodes[mp[st.back()]];
             int nextChild = node.child[word_process(file[file_pos])] - 1;
+            if (nextChild == -1) {
+                nextChild = node.child[""] - 1;
+                if (nextChild == -1) {
+                    cout << "Compilation error: out of bound\n" << nextChild;
+                    return -1;
+                }
+                st.pop_back();
+                for (int i = node.next[nextChild].size() - 1; i > 0; i--) {
+                    st.push_back(node.next[nextChild][i]);
+                }
+                continue;
+            }
             st.pop_back();
             for (int i = node.next[nextChild].size() - 1; i >= 0; i--) {
                 st.push_back(node.next[nextChild][i]);
@@ -195,7 +209,7 @@ string trim_string(string str) {
 
 
 int main() {
-    // freopen("test.vcps", "w", stdout);
+    freopen("test.vcps", "w", stdout);
     ifstream rule_reader;
     rule_reader.open("rules.txt");
     string s;
@@ -244,12 +258,12 @@ int main() {
 
     // testing the rule-process-handling
 
-    // for (int i = 0; i < nodes.size(); i++) {
-    //     cout << nodes[i].id << "\n";
-    //     for (int j = 0; j < nodes[i].children.size(); j++) {
-    //         cout << nodes[i].children[j] << " " << nodes[i].child[nodes[i].children[j]] << "\n";
-    //     }
-    // }
+    for (int i = 0; i < nodes.size(); i++) {
+        cout << nodes[i].id << "\n";
+        for (int j = 0; j < nodes[i].children.size(); j++) {
+            cout << nodes[i].children[j] << " " << nodes[i].child[nodes[i].children[j]] << "\n";
+        }
+    }
 
     //------------------------------------------------------------------------------------------------------
 
